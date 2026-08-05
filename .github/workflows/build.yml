@@ -26,6 +26,10 @@ jobs:
         cd $THEOS/sdks
         mv iPhoneOS16.5.sdk iPhoneOS.sdk
 
+    - name: Download PSHeader Dependency
+      run: |
+        git clone --depth=1 https://github.com/PoomSmart/PSHeader.git $THEOS/include/PSHeader
+
     - name: Compile Tweak to Dylib
       run: |
         make
