@@ -6,12 +6,11 @@ on:
 jobs:
   build:
     runs-on: macos-latest
-
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Setup Theos Environment
+    - name: Setup Theos
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
@@ -21,24 +20,30 @@ jobs:
         echo "THEOS=$THEOS" >> $GITHUB_ENV
         echo "$THEOS/bin" >> $GITHUB_PATH
 
-    - name: Download and Rename iOS SDK
+    - name: Prepare SDK
       run: |
         cd $THEOS/sdks
         mv iPhoneOS16.5.sdk iPhoneOS.sdk
 
-    - name: Download Header Dependencies
+    - name: Fetch header deps
       run: |
         git clone --depth=1 https://github.com/PoomSmart/PSHeader.git $THEOS/include/PSHeader
         git clone --depth=1 https://github.com/PoomSmart/YouTubeHeader.git $THEOS/include/YouTubeHeader
+        git clone --depth=1 https://github.com/PoomSmart/YTVideoOverlay.git ../YTVideoOverlay
 
-    - name: Compile Tweak to Dylib
+    - name: Build
       run: |
         make
         mkdir -p output_artifacts
         find .theos/obj/ -name "*.dylib" -exec cp {} output_artifacts/ \; || true
+        # Optionally include the resource bundle so the tweak works fully when sideloaded
+        mkdir -p output_artifacts/Library/Application\ Support
+        cp -R "layout/Library/Application Support/YouPiP.bundle" output_artifacts/Library/Application\ Support/ || true
 
-    - name: Upload Dylib Artifact
+    - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: YouPiP-Dylib-File
-        path: output_artifacts/*.dylib
+        name: YouPiP-build
+        path: |
+          output_artifacts/*.dylib
+          output_artifacts/Library/**
