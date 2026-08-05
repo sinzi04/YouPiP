@@ -1,0 +1,39 @@
+name: Build iOS .dylib
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup Theos Environment
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        brew install ldid xz
+        export THEOS=~/theos
+        bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+        echo "THEOS=$THEOS" >> $GITHUB_ENV
+        echo "$THEOS/bin" >> $GITHUB_PATH
+
+    - name: Download and Rename iOS SDK
+      run: |
+        cd $THEOS/sdks
+        mv iPhoneOS16.5.sdk iPhoneOS.sdk
+
+    - name: Compile Tweak to Dylib
+      run: |
+        make
+        mkdir -p output_artifacts
+        find .theos/obj/ -name "*.dylib" -exec cp {} output_artifacts/ \; || true
+
+    - name: Upload Dylib Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: YouPiP-Dylib-File
+        path: output_artifacts/*.dylib
